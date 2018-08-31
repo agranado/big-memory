@@ -12,7 +12,7 @@ library(data.tree)
 #it also duplicates the barcoded scratchpad from the parent cells
 #takes thisNode as input parameter
 #  thisNode <- Node$new("1")
-divideCell2<-function(thisNode,mu,alpha,type='trit',recType="integrase"){
+divideCell2<-function(thisNode,mu,alpha,type='trit',recType="integrase",cInts=1,tInts=1){
 
 
   x<-thisNode$levelName
@@ -33,8 +33,8 @@ divideCell2<-function(thisNode,mu,alpha,type='trit',recType="integrase"){
   daughter2$barcode <-thisNode$barcode
   #then mutation happens:
   #independent events for each daughter. (extract barcode, mutate, update)
-  daughter$barcode <- mutationScratchpad(daughter$barcode,mu,alpha,type,recType)
-  daughter2$barcode <- mutationScratchpad(daughter2$barcode,mu,alpha,type,recType)
+  daughter$barcode <- mutationScratchpad(daughter$barcode,mu,alpha,type,recType,cInts=cInts,tInts=tInts)
+  daughter2$barcode <- mutationScratchpad(daughter2$barcode,mu,alpha,type,recType,cInts=cInts,tInts=tInts )
 
 
   return(thisNode)
@@ -44,18 +44,18 @@ divideCell2<-function(thisNode,mu,alpha,type='trit',recType="integrase"){
 #this function acts on a tree.
 #finds the depth of the tree and duplicates only at the leaf level
 #Effectively add one generation to the tree
-divideCellRecursive2<-function(thisNode,mu,alpha,type='trit',recType="integrase"){
+divideCellRecursive2<-function(thisNode,mu,alpha,type='trit',recType="integrase",cInts=1,tInts=1){
   #add Child function changes the tree permanently.
   #tree works as a global variable, all pointers represent same object
 
   #this function will add one generation to the three
   if(length(thisNode$children)==0){
     #the node is a leaf (or root)
-    divideCell2(thisNode,mu,alpha,type,recType)
+    divideCell2(thisNode,mu,alpha,type,recType,cInts,tInts)
     #this works
   }else{
     for (i in 1:length(thisNode$children)){
-      divideCellRecursive2(thisNode$children[i][[1]],mu,alpha,type,recType)
+      divideCellRecursive2(thisNode$children[i][[1]],mu,alpha,type,recType,cInts,tInts)
     }
 
   }
@@ -66,7 +66,7 @@ divideCellRecursive2<-function(thisNode,mu,alpha,type='trit',recType="integrase"
 #function to mutate the scratchpad (what memoir actually does)
 # Different recording schemes should be easy to implement as recType and adding
 #   new functions
-mutationScratchpad <- function(barcode,mu,alpha,type='trit',recType="integrase"){
+mutationScratchpad <- function(barcode,mu,alpha,type='trit',recType="integrase",cInts=1,tInts=1){
 
   originalBarcode=strsplit(barcode,"")[[1]]
   #now a is an array of char elements representing the scratchpad
@@ -75,7 +75,7 @@ mutationScratchpad <- function(barcode,mu,alpha,type='trit',recType="integrase")
   #for each element in the array, ask if mutation happens
   #with constant independent rate (mutation in [1] does not affect [2])
   if(recType=="integrase"){
-    mutatedBarcode=recIntegrase(originalBarcode,mu=mu,alpha=alpha)
+    mutatedBarcode=recIntegrase(originalBarcode,mu=mu,alpha=alpha,type=type,currentInts=cInts,totalInts=tInts)
   }else{ #No mutation
     mutatedBarcode= originalBarcode
   }
@@ -83,7 +83,20 @@ mutationScratchpad <- function(barcode,mu,alpha,type='trit',recType="integrase")
   return( paste(mutatedBarcode,sep="",collapse=""))
 }
 
-recIntegrase<-function(a,mu,alpha){
+
+# currentInts --> the active integrase, in a cascade they are activated sequentially
+# in normal iMEMOIR, there is only one integrase and it is activated throughout the experiment
+# if no additional arguments are passed, the function will perform integrase recording 1.0
+recIntegrase<-function(a,mu,alpha,type,currentInts=1,totalInts=1){
+
+  barcodeLength=length(a)
+  fullBarcode = a
+  #we want to edit only the portion that corresponds to
+  #the currently active integrase
+  editableIndx =(barcodeLength / totalInts *(currentInts-1)) : (barcodeLength /totalInts * currentInts);
+  a = fullBarcode[editableIndx]
+
+
   for (c in 1:length(a)){
     #only mutate on unchanged elements
     if(a[c]=="u"){
@@ -103,7 +116,9 @@ recIntegrase<-function(a,mu,alpha){
       }
     }
   }
-  return(a)
+
+  fullBarcode[editableIndx]= a
+  return(fullBarcode)
 }
 
 
