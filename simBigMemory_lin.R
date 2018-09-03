@@ -83,8 +83,8 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
  # # # # # # # #
 # # # # # # # # #
   actIntegrase=1 # start recording using integrase 1
-  nIntegrases =3 # how many integrases comprise the cascade
-  act_times = c(1,1,2,2,3,3)
+  nIntegrases =4 # how many integrases comprise the cascade
+  act_times = c(1,1,2,2,3,3,3,4,4,4)
   for (g in 1:nGen){
     #this function simulates one generation of the tree
     actIntegrase = act_times[g]
@@ -99,25 +99,26 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   #  print(firstCell,"barcode")
   #  print("Tree simulation completed")
   #save to file as newick tree
-  #save the length of branches plus the ID (which so far is a number)
-  newickTree<-ToNewick(firstCell)
-  #Generate unique ID for writing file to disc (we'll erase it later)
-  fileID = toString(runif(1))
-
-  #firstCellFile = paste(pathName,"trees/firstCell",fileID,".nwk",sep="")
-
-  firstCellFile =tempfile("trees/firstCell",tmpdir = pathName2)
-  firstCellFile =paste(firstCellFile,fileID,".nwk",sep="")
-
-
-  write(newickTree,file=firstCellFile)
-  #load the tree from the file as a tree structure.
-  trueTree<-read.tree(file=firstCellFile)
+  # #save the length of branches plus the ID (which so far is a number)
+  # newickTree<-ToNewick(firstCell)
+  # #Generate unique ID for writing file to disc (we'll erase it later)
+  # fileID = toString(runif(1))
+  #
+  # #firstCellFile = paste(pathName,"trees/firstCell",fileID,".nwk",sep="")
+  #
+  # firstCellFile =tempfile("trees/firstCell",tmpdir = pathName2)
+  # firstCellFile =paste(firstCellFile,fileID,".nwk",sep="")
+  #
+  #
+  # write(newickTree,file=firstCellFile)
+  # #load the tree from the file as a tree structure.
+  # trueTree<-read.tree(file=firstCellFile)
 
   #file is now deleted
   #  print("True tree read")
   # plot(trueTree,main=paste("True tree ",sep=""))
 
+  trueTree<-as.phylo.Node(firstCell)
   #get the sequences from the simulated tree + names
   barcodes<-firstCell$Get("barcode")
 
@@ -156,41 +157,9 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   fastaBarcodes<-fastaBarcodes[rand.barcode.order]
   barcodeLeaves<-barcodeLeaves[rand.barcode.order]
   write(fastaBarcodes,file=fasIN)
-  #  print("writting fasta file, simulated tree")
-  #this is the format:
-  #>1_uuuuuu
-  #uuuuuu
-  #>2_uxuxuu
-  #uxuxuu
-  #>4_uxuxxc
-  #uxuxxc
-  #>8_uxuxxc
-  #uxuxxc
-
-  #we can also convert the data.tree format to igraph format
-  #igraph has more algorithms and plotting function, so it's worth.
-  #LIBRARY
-  #library(igraph)
-  #as.igraph.Node converts data.tree to igraph object
-  #  firstCell_igraph<-as.igraph.Node(firstCell)
-  #rename all vertices in the network using the barcodes.
-  # V(firstCell_igraph)$name<-barcodes
-  #the object has now all info.
-  #REMEBER: this is the REAL tree, still we need to perform alignment and reconstruction
 
 
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-  #### FROM here comes the alignment and reconstruction
-  #previously saved fasta file
-  #LIBRARY\
-
-
-  #this a new type of object, from the package phangorn "phyDat"
-
-  #we can apply lineage reconstruction here so later we can compare with the real tree.
-  #before loading the fasta file we need to convert the characters to DNA, so that it is compatible
-  #sed.return ==1 if replacement went through (Apr 25)
   sed.return<-convertMemoirToDNA(fasIN)
   #now we can use the phyDat
   if(sed.return){
@@ -226,17 +195,6 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
     allDistances[m+1]= NaN
   }
 
-  #Apr 9th
-  #Manual distance calculation (v beta1.0)
-  #  matdist = manualDist(barcodeLeaves,mu,alpha,nGen)
-  #  manualTree =upgma(as.dist(t(matdist)))
-  #  manualTree$tip.label= treeUPGMA$tip.label
-
-  #  allDistances[m+2]= RF.dist(removeSeqLabel(manualTree),trueTree)
-
-  # allDistances[m+2]=0
-
-  #manualdist from MLfunctinos.R
 
   matdist_ = manualDistML(barcodeLeaves,mu,alpha,nGen)
   manualTree_ =upgma(as.dist(t(matdist_)))
@@ -469,23 +427,24 @@ simMemoirBarcodes<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c()
   #  print(firstCell,"barcode")
   #  print("Tree simulation completed")
   #save to file as newick tree
-  #save the length of branches plus the ID (which so far is a number)
-  newickTree<-ToNewick(firstCell)
-  #Generate unique ID for writing file to disc (we'll erase it later)
-  fileID = toString(runif(1))
-
-  #firstCellFile = paste(pathName,"trees/firstCell",fileID,".nwk",sep="")
-
-  firstCellFile =tempfile("trees/firstCell",tmpdir = pathName2)
-  firstCellFile =paste(firstCellFile,fileID,".nwk",sep="")
-
-
-  write(newickTree,file=firstCellFile)
-  #load the tree from the file as a tree structure.
-  trueTree<-read.tree(file=firstCellFile)
+  # #save the length of branches plus the ID (which so far is a number)
+  # newickTree<-ToNewick(firstCell)
+  # #Generate unique ID for writing file to disc (we'll erase it later)
+  # fileID = toString(runif(1))
+  #
+  # #firstCellFile = paste(pathName,"trees/firstCell",fileID,".nwk",sep="")
+  #
+  # firstCellFile =tempfile("trees/firstCell",tmpdir = pathName2)
+  # firstCellFile =paste(firstCellFile,fileID,".nwk",sep="")
+  #
+  #
+  # write(newickTree,file=firstCellFile)
+  # #load the tree from the file as a tree structure.
+  # trueTree<-read.tree(file=firstCellFile)
 
   #file is now deleted
   #  print("True tree read")
+  trueTree<-as.phylo.Node(firstCell)
   # plot(trueTree,main=paste("True tree ",sep=""))
 
   #get the sequences from the simulated tree + names
