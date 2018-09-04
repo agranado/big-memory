@@ -29,20 +29,21 @@ if(os=="mac"){
   git.path = "../GIT/"
 }else if(os =="linux"){
   git.path = "../lineageSoftware/"
-  
+
 }
 #Load fucntions from the main GIT repository (lineageSoftware)
 source(paste(git.path,"MLfunctions.R",sep=""))
 
-
+registerDoParallel(8)
 
 
 rand.dist<-c(10,  26,  58, 120, 250, 506)
+nRepeats = 20
+compareDist <- function(simulationType='trit',nGen=4,mu=0.3,alpha_=2/3,barcodeLength=40,nRepeats=20,methods=c('osa','lv','dl','hamming','lcs','qgram','cosine','jaccard','jw','soundex'),
+                        recType="integrase",nIntegrases=4){
 
-compareDist <- function(simulationType='trit',nGen=4,mu=0.3,alpha_=2/3,barcodeLength=20,nRepeats=20,methods=c('osa','lv','dl','hamming','lcs','qgram','cosine','jaccard','jw','soundex'),recType="integrase"){
 
-
-  results= foreach(i=1:nRepeats) %dopar% simMemoirStrdist(nGen=nGen,mu=mu,alpha=alpha_,barcodeLength=barcodeLength,methods=methods,simulationType=simulationType)
+  results= foreach(i=1:nRepeats) %dopar% simMemoirStrdist(nGen=nGen,mu=mu,alpha=alpha_,barcodeLength=barcodeLength,methods=methods,simulationType=simulationType,nIntegrases = nIntegrases)
 
  #let's unlist the results from the parallel calculations:
   results_=list()
@@ -62,8 +63,8 @@ compareDist <- function(simulationType='trit',nGen=4,mu=0.3,alpha_=2/3,barcodeLe
   results.matrix=do.call(rbind,results_)
   #Optional when only interested in the mean
   #apply(results.matrix,2,mean)
-  return(results.matrix)
-
+  # return(results.matrix)
+return(list(results.matrix,tree.list))
 
 
 }
@@ -78,7 +79,7 @@ eq.zero<-function(r,x){sum(r[,x]==0)}
 #April 8th
 #Test stringdistance measures using the stringdist R library
 #use the same format as before but testing different methods included in the stringdist function
-simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),simulationType='trit',recType="integrase"){
+simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),simulationType='trit',recType="integrase",nIntegrases=2){
   #load necessary libraries and functions
   #detection of OS
 
@@ -112,10 +113,19 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
 # # # # # # # # #
  # # # # # # # #
 # # # # # # # # #
-  actIntegrase=1 # start recording using integrase 1
-  nIntegrases =1 # how many integrases comprise the cascade
+ 
+ #Here we implment 3 recording systems: 4 intgrases using 40 barcodes/10 each ;  2 integrases using 40 barcodes/ 20 each; and a single array using 40 barcodes 
+ # actIntegrase=1 # start recording using integrase 1
+  #nIntegrases =4 # how many integrases comprise the cascade
+ #1 is the first integrase (for nomal memoir , this is the only integrase)
+  if(nIntegrases==2){
   act_times = c(1,1,2,2,3,3,3,4,4,4)
-  act_times = rep(1,nGen)
+  }else if(nIntegrases==4){
+  act_times = c(1,2,3,4)
+  #for normal memoir recording nIntegrases=1
+  }else if(nIntegrases==1)  {
+   act_times = rep(1,nGen)
+  }
   for (g in 1:nGen){
     #this function simulates one generation of the tree
     actIntegrase = act_times[g]
@@ -142,10 +152,10 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
     namesLeaves[l] <-names(barcodes)[names(barcodes)==leavesID[l]]
   }
   names(barcodeLeaves)<-namesLeaves
-  
-  
-  
-  
+
+
+
+
   #take the barcodes from internal nodes, not useful here but for saving the complete tree simulations
   #
   nodesID = as.numeric(trueTree$node.label) #THIS WORKS
@@ -156,17 +166,17 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
     namesNodes[l]<-names(barcodes)[names(barcodes)==nodesID[l]]
   }
   names(barcodeNodes)<-namesNodes
-  ### SAVE TREE with NAMES 
-  
+  ### SAVE TREE with NAMES
+
   named.tree = trueTree
   named.tree$tip.label = barcodeLeaves
   named.tree$node.label = barcodeNodes
-  
 
-  
-  
-  
-  
+
+
+
+
+
   #now barcodeLeaves has all the leaves of the tree, with their original ID from the data.tree structure.
   #create Fasta file using only the leaves of the tree (n= 2^g)
   fastaBarcodes<-convertSimToFasta(barcodeLeaves)
@@ -235,7 +245,7 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
 
   #try new distance using the built in dendrogram of heatmap2
 
-  h=heatmap.2(matdist_+t(matdist_),trace="none",dendrogram = 'column')
+  #h=heatmap.2(matdist_+t(matdist_),trace="none",dendrogram = 'column')
   # h=heatmap.2(matdist_+t(matdist_),Colv="Rowv")
   # heatmap.tree=as.phylo(as.hclust(h$colDendrogram))
   # heatmap.tree$tip.label = treeUPGMA$tip.label
@@ -261,6 +271,23 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
 # # # # # # # # # #
  # # # # # # # # #
 # # # # # # # # # #
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
