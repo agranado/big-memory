@@ -20,12 +20,21 @@ library(phangorn)
 library(stringdist)
 library(doParallel)
 library(gplots)
-source("../lineageSoftware/MLfunctions.R") #load from the lineageSoftware repository
 source("simulation3_lin.R")
 source("additionalFunctions.R")
 
 
-library(gplots)
+os=system("cat ../os.txt",intern = T)
+if(os=="mac"){
+  git.path = "../GIT/"
+}else if(os =="linux"){
+  git.path = "../lineageSoftware/"
+  
+}
+#Load fucntions from the main GIT repository (lineageSoftware)
+source(paste(git.path,"MLfunctions.R",sep=""))
+
+
 
 
 rand.dist<-c(10,  26,  58, 120, 250, 506)
@@ -104,40 +113,14 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
  # # # # # # # #
 # # # # # # # # #
   actIntegrase=1 # start recording using integrase 1
-  nIntegrases =4 # how many integrases comprise the cascade
+  nIntegrases =1 # how many integrases comprise the cascade
   act_times = c(1,1,2,2,3,3,3,4,4,4)
+  act_times = rep(1,nGen)
   for (g in 1:nGen){
     #this function simulates one generation of the tree
     actIntegrase = act_times[g]
     divideCellRecursive2(firstCell,mu,alpha,type=simulationType,recType=recType,actIntegrase,nIntegrases)
   }
-# # # # # # # # #
- # # # # # # # # #
-# # # # # # # # #
-
-
-  #prints only the barcodes for all leaves
-  #  print(firstCell,"barcode")
-  #  print("Tree simulation completed")
-  #save to file as newick tree
-  # #save the length of branches plus the ID (which so far is a number)
-  # newickTree<-ToNewick(firstCell)
-  # #Generate unique ID for writing file to disc (we'll erase it later)
-  # fileID = toString(runif(1))
-  #
-  # #firstCellFile = paste(pathName,"trees/firstCell",fileID,".nwk",sep="")
-  #
-  # firstCellFile =tempfile("trees/firstCell",tmpdir = pathName2)
-  # firstCellFile =paste(firstCellFile,fileID,".nwk",sep="")
-  #
-  #
-  # write(newickTree,file=firstCellFile)
-  # #load the tree from the file as a tree structure.
-  # trueTree<-read.tree(file=firstCellFile)
-
-  #file is now deleted
-  #  print("True tree read")
-  # plot(trueTree,main=paste("True tree ",sep=""))
 
   trueTree<-as.phylo.Node(firstCell)
 
@@ -158,11 +141,14 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
     barcodeLeaves[l] <-barcodes[names(barcodes)==leavesID[l]]
     namesLeaves[l] <-names(barcodes)[names(barcodes)==leavesID[l]]
   }
-
+  names(barcodeLeaves)<-namesLeaves
+  
+  
+  
+  
   #take the barcodes from internal nodes, not useful here but for saving the complete tree simulations
   #
-  nodesID=1:(leavesID[1]-1)
-
+  nodesID = as.numeric(trueTree$node.label) #THIS WORKS
   barcodeNodes=array()
   namesNodes=array()
   for(l in 1:length(nodesID)){
@@ -170,9 +156,17 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
     namesNodes[l]<-names(barcodes)[names(barcodes)==nodesID[l]]
   }
   names(barcodeNodes)<-namesNodes
-  ### NOTE names for the new tree are not correct 
-  names(barcodeNodes)<-namesNodes[as.numeric(trueTree$node.label)]
-  #names(barcodeLeaves)<-namesLeaves
+  ### SAVE TREE with NAMES 
+  
+  named.tree = trueTree
+  named.tree$tip.label = barcodeLeaves
+  named.tree$node.label = barcodeNodes
+  
+
+  
+  
+  
+  
   #now barcodeLeaves has all the leaves of the tree, with their original ID from the data.tree structure.
   #create Fasta file using only the leaves of the tree (n= 2^g)
   fastaBarcodes<-convertSimToFasta(barcodeLeaves)
@@ -261,7 +255,7 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   #system(paste("rm ",fasIN,".bak",sep=""))
 
 
-  return(list(allDistances,trueTree))
+  return(list(allDistances,named.tree))
 }
 #END of simulation function
 # # # # # # # # # #
