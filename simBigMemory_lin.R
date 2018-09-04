@@ -22,20 +22,41 @@ library(doParallel)
 library(gplots)
 source("../lineageSoftware/MLfunctions.R") #load from the lineageSoftware repository
 source("simulation3_lin.R")
+source("additionalFunctions.R")
+
 
 library(gplots)
 
 
 rand.dist<-c(10,  26,  58, 120, 250, 506)
 
-compareDist <- function(simulationType='trit',nGen=4,mu=0.3,alpha_=2/3,barcodeLength=20,nRepeats=20,methods=c('osa','lv','dl','hamming','lcs','qgram','cosine','jaccard','jw','soundex')){
+compareDist <- function(simulationType='trit',nGen=4,mu=0.3,alpha_=2/3,barcodeLength=20,nRepeats=20,methods=c('osa','lv','dl','hamming','lcs','qgram','cosine','jaccard','jw','soundex'),recType="integrase"){
 
 
   results= foreach(i=1:nRepeats) %dopar% simMemoirStrdist(nGen=nGen,mu=mu,alpha=alpha_,barcodeLength=barcodeLength,methods=methods,simulationType=simulationType)
-  results.matrix=do.call(rbind,results)
+
+ #let's unlist the results from the parallel calculations:
+  results_=list()
+  tree.list = list()
+  for(i in 1:length(results)){
+    results_[[i]] =results[[i]][[1]]
+    tree.list[[i]] = results[[i]][[2]]
+  } #this takes the first element of the results list which is the array with distance calculations
+
+  #save the simulated trees to the hard drive
+  simulation.file = paste("recType_",recType,"_mu_",toString(mu),
+     "_BC_",toString(barcodeLength),
+     "_nG_",toString(nGen),"_Nrep_",toString(nRepeats),"_.rda",sep="")
+
+
+
+  results.matrix=do.call(rbind,results_)
   #Optional when only interested in the mean
   #apply(results.matrix,2,mean)
   return(results.matrix)
+
+
+
 }
 
 #functions to use the proportion of perfect trees as the measure.
@@ -48,7 +69,7 @@ eq.zero<-function(r,x){sum(r[,x]==0)}
 #April 8th
 #Test stringdistance measures using the stringdist R library
 #use the same format as before but testing different methods included in the stringdist function
-simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),simulationType='trit'){
+simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),simulationType='trit',recType="integrase"){
   #load necessary libraries and functions
   #detection of OS
 
@@ -88,7 +109,7 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   for (g in 1:nGen){
     #this function simulates one generation of the tree
     actIntegrase = act_times[g]
-    divideCellRecursive2(firstCell,mu,alpha,type=simulationType,recType="integrase",actIntegrase,nIntegrases)
+    divideCellRecursive2(firstCell,mu,alpha,type=simulationType,recType=recType,actIntegrase,nIntegrases)
   }
 # # # # # # # # #
  # # # # # # # # #
@@ -119,6 +140,8 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   # plot(trueTree,main=paste("True tree ",sep=""))
 
   trueTree<-as.phylo.Node(firstCell)
+
+
   #get the sequences from the simulated tree + names
   barcodes<-firstCell$Get("barcode")
 
@@ -135,7 +158,21 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
     barcodeLeaves[l] <-barcodes[names(barcodes)==leavesID[l]]
     namesLeaves[l] <-names(barcodes)[names(barcodes)==leavesID[l]]
   }
-  names(barcodeLeaves)<-namesLeaves
+
+  #take the barcodes from internal nodes, not useful here but for saving the complete tree simulations
+  #
+  nodesID=1:(leavesID[1]-1)
+
+  barcodeNodes=array()
+  namesNodes=array()
+  for(l in 1:length(nodesID)){
+    barcodeNodes[l]<-barcodes[names(barcodes)==nodesID[l]]
+    namesNodes[l]<-names(barcodes)[names(barcodes)==nodesID[l]]
+  }
+  names(barcodeNodes)<-namesNodes
+  ### NOTE names for the new tree are not correct 
+  names(barcodeNodes)<-namesNodes[as.numeric(trueTree$node.label)]
+  #names(barcodeLeaves)<-namesLeaves
   #now barcodeLeaves has all the leaves of the tree, with their original ID from the data.tree structure.
   #create Fasta file using only the leaves of the tree (n= 2^g)
   fastaBarcodes<-convertSimToFasta(barcodeLeaves)
@@ -216,7 +253,7 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   hclust.tree$tip.label = treeUPGMA$tip.label
   allDistances[m+3]= RF.dist(removeSeqLabel(hclust.tree),trueTree)
 
-  system(paste("rm ",firstCellFile,sep=""))
+  #system(paste("rm ",firstCellFile,sep=""))
   if(sed.return){
     system(paste("rm ",paste(fasIN,".bak",sep=""),sep=""))
     system(paste("rm ",fasIN,sep=""))
@@ -224,147 +261,12 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   #system(paste("rm ",fasIN,".bak",sep=""))
 
 
-  return(allDistances)
+  return(list(allDistances,trueTree))
 }
 #END of simulation function
-#Apr 9th
-
-Pr_edit <- function (nGen,mu,alpha){
-  #probability that at nGen generations there is a mutation
-  cumSum =0
-  for (nG in 1:nGen){
-    cumSum = cumSum + mu * (1-mu)^(nG-1) * alpha
-  }
-  return(cumSum)
-}
-
-#calcualtion of distance based on the properties of the system.
-#should work only for this implementation of memoir
-manualDist <- function(barcodeLeaves,mu,alpha,nGen){
-  alphabet = array()
-  alphabet[1]= "u"
-  alphabet[2]= "r"
-  alphabet[3]= "x"
-  #mu & alpha indicate an explicit probabilistic model
-  #Probability of no mutation for nGen cell divisions (mu is rate of edit per cell division)
-
-  #transition probabilities
-  #beacuse transitions only happen from u ->  then this is a 1-D vector
-  Tran.pr = c(1, alpha,1-alpha)
-
-
-  #NULL MODEL: probability of observing sites as independent events:
-  Pr = array()
-  Pr[1] = (1-mu)^nGen
-  #probability of nu mutation during nGen-1 devisions and then a mutation in generation nGen times Pr(alphabet[2])
-  #then we use the choose to correct for all the order in which this could have happened, (we need still further correction to
-  #to account for irreversibility)
-  #Pr[2] = choose(nGen,nGen-1)*( 1-mu)^(nGen-1)*mu*alpha
-  #corrected for irreversibility:
-  Pr[2] = Pr_edit(nGen,mu,alpha)
-
-  #same as before but using (1-alpha)
-  #Pr[3] = choose(nGen,nGen-1)*(1-mu)^(nGen-1)*mu*(1-alpha)
-  Pr[3] = Pr_edit(nGen,mu,1-alpha)
-
-  PrMatrix  = array(0,dim=c(length(Pr),length(Pr)))
-  #calcualte probabilistic model:
-  #this just means the pr that those two sites have those characters by random. This is the expected pr for each site
-  #it assummes independence but does not tell you how likely they are to come from a common ancestor
-  for (p1 in 1:length(alphabet)){
-    for (p2 in 1:length(alphabet)){
-      PrMatrix[p1,p2] = Pr[p1] * Pr[p2]
-    }
-  }
-
-  #weights for number of sustitutions
-  equalU =0
-  oneSust = 1
-  twoSust = 2
-
-  nBarcodes = length(barcodeLeaves)
-  barcodeLength=nchar(barcodeLeaves[1])
-  distMat= array(0,dim =c(nBarcodes,nBarcodes))
-  ratioMat = array(0,dim=c(nBarcodes,nBarcodes))
-  productMat = array(0,dim=c(nBarcodes,nBarcodes))
-
-  #go through all the elements in the barcode array
-  for (i in 1:(nBarcodes-1)){
-    for (j in (i+1):nBarcodes){
-      barcodeArray1 =strsplit(barcodeLeaves[i],"")[[1]]
-      barcodeArray2 =strsplit(barcodeLeaves[j],"")[[1]]
-      distSum = 1
-      ratio.sum =0
-      ratio.product=1
-      #for each pairwise comparison
-      for (s in 1:barcodeLength){
-        #Pr of observing these characters independtly arising Pr1 * Pr2 : assuming independence at nGen
-        Pr.sust = PrMatrix[which(alphabet ==barcodeArray1[s]),which(alphabet ==barcodeArray2[s])] #this is just the product of both Pr
-        Pr.sust.inv = 1/Pr.sust
-        #both characters are the same (independently of their identity)
-        if(barcodeArray1[s]==barcodeArray2[s]){
-          #calcualte probability of both sites
-          distSum = distSum - equalU
-          #Pr_sust
-          #probabilities under assumption of sister cells
-          if(barcodeArray1[s]=="u"){
-            #probability of u in the previous generations times pr(no sust) * pr(no sust)
-            Pr_sister=(1-mu)^(nGen-1) * (1-mu)^ 2
-          }else if(barcodeArray1[s]=="r"){
-            #if both are r : probability that ancestor is r + pr_a (u) * Pr(sust) ^2
-            # Pr(r_{t-1}) + Pr(u_{t-1}) * Pr(u->r)^2 = Pr(u->r_{t},u->r_{t} | u_{t-1})
-            Pr_sister=Pr_edit(nGen-1,mu,alpha) + (1-mu)^(nGen-1) * (mu *alpha)^2
-          }else if(barcodeArray1[s]=="x"){
-            #if both are x : probability that ancestor is r + pr_a (u) * Pr(sust) ^2
-            Pr_sister=Pr_edit(nGen-1,mu,1-alpha) + (1-mu)^(nGen-1) * (mu * (1-alpha))^2
-          }
-          #ratio between sister probability and random probability
-          ratio.sum = ratio.sum + Pr_sister/Pr.sust
-          ratio.product = ratio.product* Pr_sister/Pr.sust
-        }else{
-          #characteres have different sites.
-          #is any of the character a u
-          b = grepl(alphabet[1],c(barcodeArray1[s],barcodeArray2[s]))
-
-          #one of them is u
-          if(length(which(b==FALSE))==1){
-            distSum = distSum + oneSust *Pr.sust
-            #are there any r
-            c = grepl(alphabet[2],c(barcodeArray1[s],barcodeArray2[s]))
-            #there is one r
-            if(length(which(c==TRUE))==1){
-              #the only way to be r/u is that u was in the ancestor population
-              Pr_sister=(1-mu)^(nGen-1) * (1-mu) * mu * Tran.pr[2]
-
-            }else {
-              #it is an x:
-              # Pr_sister = Pr(u_{t-1}) * Pr(u->u_{t}) * Pr(u->r_{t})
-              Pr_sister=(1-mu)^(nGen-1) * (1-mu) * mu * Tran.pr[3]
-
-            }
-            ratio.sum = ratio.sum + Pr_sister/Pr.sust
-            # ratio.product = ratio.product* Pr_sister#Pr.sust
-            #none of them is u AND they are different
-          }else if(length(which(b==FALSE))==2){
-            distSum = distSum + twoSust *Pr.sust
-
-            #Pr_sister= Pr(r,x | u_{t-1})
-            Pr_sister = (1-mu)^(nGen-1) * mu^2 * Tran.pr[2] * Tran.pr[3]
-            ratio.sum  = ratio.sum + Pr_sister/Pr.sust
-          }
-          #sister probabilities:
-        }
-        ratio.product = ratio.product* Pr_sister/Pr.sust
-      }
-      distMat[i,j]= distSum
-      ratioMat[i,j]=1/ratio.sum *distSum
-      productMat[i,j] = 1/ratio.product
-    }
-  }
-  return(productMat)
-}
-
-
+# # # # # # # # # #
+ # # # # # # # # #
+# # # # # # # # # #
 
 
 
