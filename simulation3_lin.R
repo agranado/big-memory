@@ -299,7 +299,7 @@ convertMemoirToDNA <-function(fastaIN){
     cmds[2]="sed -i .bak 's/x/t/g'"
     cmds[3]="sed -i .bak 's/u/g/g'"
     cmds[4]="sed -i .bak 's/r/a/g'"
-  }else if(os=="linux"){ #AWS server or any other linux machine (This should work)
+  }else if(os=="linux" | os== "aws"){ #AWS server or any other linux machine (This should work)
 
     cmds[1]="sed -i.bak 's/R/c/g'"
     cmds[2]="sed -i.bak 's/x/t/g'"

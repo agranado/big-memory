@@ -7,13 +7,18 @@ source("simulation3_lin.R")
 source("additionalFunctions.R")
 
 
-os=system("cat ../os.txt",intern = T)
+os=system("cat ../os.txt",intern = T) #Local Mac repository (laptop)
 if(os=="mac"){
   git.path = "../GIT/"
-}else if(os =="linux"){
+}else if(os =="linux"){ #local linux subsystem (maybe under Windows10)
   git.path = "../lineageSoftware/"
 
+}else if(os=="aws"){ #AMAZON cloud computing server
+  
+  git.path="../lineageSoftware/"
 }
+
+
 #Load fucntions from the main GIT repository (lineageSoftware)
 source(paste(git.path,"MLfunctions.R",sep=""))
 
@@ -75,13 +80,15 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
     pathName = "/home/alejandrog/MEGA/Caltech/lineage/"
     pathName2= "/home/alejandrog/MEGA/Caltech/lineage"
 
-  }else if(os=="linux_local"){
+  }else if(os=="aws"){
     #linux desktop
     file.dir = "/home/alejandrog/MEGA/Caltech/trees/GraceData/integrase-data/10mer/"
-    setwd("/home/alejandrog/MEGA/Caltech/trees/macbookBranch/lineageSoftware")
+    #setwd("/home/alejandrog/MEGA/Caltech/trees/macbookBranch/lineageSoftware")
     pathName2= "/home/alejandrog/MEGA/Caltech/lineage"
     pathName= "/home/alejandrog/MEGA/Caltech/lineage/"
     #At this point we are supposed to be in the local branch already, because we read the os.txt...
+    pathName="/home/ubuntu/alejandrog/Caltech/lineage/"
+    pathName2="/home/ubuntu/alejandrog/Caltech/lineage"
   }
   #clear the variable (since it behaves as global)
   if(exists("firstCell")){
