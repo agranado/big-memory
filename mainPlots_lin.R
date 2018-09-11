@@ -2,8 +2,13 @@
 #May 9th
 #main plots that might be used in the paper
 #this script should load the object muVariation or it should be executed afeter running bitVStrit.R
-data.path = "/home/alejandrog/MEGA/Caltech/lineage/simulation_data/"
+os=system("cat ../os.txt",intern = T) #Local Mac repository (laptop)
+if( os=="linux"){
+  data.path = "/home/alejandrog/MEGA/Caltech/lineage/simulation_data/"
+}else if(os=="mac"){
 
+  data.path = "./"
+}
 #parameters from AWS: large object cascadevar 10-Sep-2018
 #SET PARAMETERS
 barcodes = c(20,40,60,80,100,200)
@@ -50,7 +55,7 @@ x11()
 par(mfrow=c(length(integrases),length(generations)))
 
 
-
+cascade.matrices=list()
 for (ni in 1:length(integrases)){
   distTrit=array(0,dim=c(length(barcodes),length(generations)))
 
@@ -131,6 +136,9 @@ for(ng in 1:length(generations)){
 
 }
 
+# # # # # # 
+ # # # # 
+ 
 
 
 # Sep 10th
