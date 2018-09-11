@@ -2,26 +2,37 @@
 #May 9th
 #main plots that might be used in the paper
 #this script should load the object muVariation or it should be executed afeter running bitVStrit.R
+data.path = "/home/alejandrog/MEGA/Caltech/lineage/simulation_data/"
 
+#parameters from AWS: large object cascadevar 10-Sep-2018
+#SET PARAMETERS
+barcodes = c(20,40,60,80,100,200)
+integrases = c(1,2,4)
+mus = c(0.5,0.4,0.3,0.2,0.1)
+generations=c(4,6,7,8,9,10)#,11,12)
+nRepeats=72
+types=c('trit')
+#large file with all the simulations: distances and trees.
+# 1 muVariation object per integrase number, for cascade recording
+file.name.cascade="intVar_int_4_.rda"
+load(paste(data.path,file.name.cascade,sep=""))
+#name of the object is cascadevar
+# struct[[int_number]][[mu]][[typeSim]][[bc]][[ng]]
+# DIMS : cascadevar[[1]][[5]][[1]][[6]][[6]]
 
-# plotting ----------------------------------------------------------------
-ran.generations = c(3,4,5,6,7,8,9,10,11,12)
+# RANDOM distance: for normalizaiton
+
+ran.generations = c(3,4,5,6,7,8,9,10)#,11,12)
 a=list()
-
-  results= foreach(i=1:length(ran.generations)) %dopar% simMemoirRandomGuess(ran.generations[i],mu,alpha,barcodes[1],nRepeats)
-
-
-#this function calculates the area under the curve of the ecdf of the vector. In this case, the cumulative fraction
-#of trees (as the plot in Memoir 1.0), that have a certain degree of accuracy (RF.dist)
-auc.ecdf<-function(x){
-  emp.cdf = ecdf(x)
-  return(max(cumsum(emp.cdf(min(x):max(x)))))
-}
-
-
-manual.idx=13
-upgam.idx=11
-alpha=1/2
+  #RUN
+  #results= foreach(i=1:length(ran.generations)) %dopar% simMemoirRandomGuess(ran.generations[i],mu,alpha,barcodes[1],nRepeats)
+  #pre-runned
+  a.long=c(0,0,9.2,   24.0,   56.0,  120.0,  248.4,  504.4, 1016.8, 2042.0)
+  a = a.long[generations]
+#plotting ----------------------------------------------------------------
+manual.idx=3
+upgam.idx=1
+alpha=2/3
 
 distBit=array(0,dim=c(length(barcodes),length(generations)))
 distTrit=array(0,dim=c(length(barcodes),length(generations)))
@@ -44,7 +55,7 @@ for (ni in 1:length(integrases)){
   distTrit=array(0,dim=c(length(barcodes),length(generations)))
 
   muVariation = cascadevar[[ni]]
-  mIdx=1 #only one edit rate
+  mIdx=4 #only one edit rate
   simType=muVariation[[mIdx]]
     for(ng in 1:length(generations)){
 
@@ -53,18 +64,9 @@ for (ni in 1:length(integrases)){
         distTrit[bc,ng]=apply(simType[['trit']][[bc]][[ng]],2,mean)[1] # 12 -> RF.dist using manualDist + UPGMA
 
       }
-
-    #  if(ni==1){
-      plot(log(barcodes),distTrit[,ng],main=paste("gen = ",toString(generations[ng]), " cascade=",toString(integrases[ni]),sep=""),
-           type="o",ylim=c(0,a[ng]+0.05*a[ng]),ylab="RF dist",xlab="log N scratchpads",
-           cex.lab=1.5,cex.axis=1.5,cex.main=2,lwd=1.5)
-    #     }else {
-  #    lines(log(barcodes),distTrit[,ng],type="o",col="blue",lwd=1.5)
-#    }
-
-#      abline(h=a[ng],col="red",lwd=1.5)
     }
-}
+    cascade.matrices[[ni]]=distTrit
+ }
 
 
 dev.off()
@@ -131,40 +133,45 @@ for(ng in 1:length(generations)){
 
 
 
-# Apr 30th
-# compare bit vs trit using optimal edit rate
-pdf(paste(pathPlots,"compareSixmer_forMu_rate.pdf"))
-distBitAll=array(0,dim=c(length(barcodes),length(generations),length(mus)))
-distTritAll=array(0,dim=c(length(barcodes),length(generations),length(mus)))
-par(mfrow=c(2,3))
-BCn=2
-for(ng in 1:length(generations)){
-  for (mIdx in 1:length(mus)){
-    simType=muVariation[[mIdx]]
-
-    for(bc in 1:length(barcodes)){
-      distBitAll[bc,ng,mIdx]=apply(simType[['trit']][[bc]][[ng]],2,mean)[11] #12 is normal UPGMA + as.dist
-      distTritAll[bc,ng,mIdx]=apply(simType[['trit']][[bc]][[ng]],2,mean)[13]
-
-
+# Sep 10th
+#
+compare.cascade=list()
+for (ca in 1:length(integrases)){
+    distBitAll=array(0,dim=c(length(barcodes),length(generations),length(mus)))
+    distTritAll=array(0,dim=c(length(barcodes),length(generations),length(mus)))
+    par(mfrow=c(2,3))
+    upgma.idx=1
+    manualDist.idx=3
+    BCn = 5
+    muVariation = cascadevar[[ca]]
+    for(ng in 1:length(generations)){
+      for (mIdx in 1:length(mus)){
+        simType=muVariation[[mIdx]]
+        for(bc in 1:length(barcodes)){
+          distBitAll[bc,ng,mIdx]=apply(simType[['trit']][[bc]][[ng]],2,mean)[upgma.idx] #12 is normal UPGMA + as.dist
+          distTritAll[bc,ng,mIdx]=apply(simType[['trit']][[bc]][[ng]],2,mean)[manualDist.idx]
+        }
+      }
+      plot(mus,1-distTritAll[BCn,ng,]/a[ng],ylim=c(0,1),
+           type="o",col="blue",ylab="norm dist",xlab="edit rate p/site p/gen",
+           main=paste("g=",toString(generations[ng]),sep=""),
+           cex.axis=1.5,cex.lab=1.6,cex.main=2);
+      lines(mus,1-distBitAll[BCn,ng,]/a[ng],type="o")
     }
-  }
-  plot(mus,1-distTritAll[BCn,ng,]/a[ng],ylim=c(0,1),
-       type="o",col="blue",ylab="norm dist",xlab="edit rate p/site p/gen",
-       main=paste("g=",toString(generations[ng]),sep=""),
-       cex.axis=1.5,cex.lab=1.6,cex.main=2);
-  lines(mus,1-distBitAll[BCn,ng,]/a[ng],type="o")
-
-  #lines(mus,1-distTritAll[5,ng,]/a[ng],col="#3399FF",pch=17,lty=6)
-  #lines(mus,1-distBitAll[5,ng,]/a[ng],col="gray",pch=17,lty=6)
-
+    compare.cascade[[ca]]=distBitAll
 }
-dev.off()
+
+
 #take minimun across all edit rates
 #optimal rate
+compare.cascade.optimal = list()
+for(ca in 1:length(integrases)){
 
-optimMatTrit=apply(distTritAll,c(1,2),min)
-optimMatBit=apply(distBitAll,c(1,2),min)
+    distTritAll = compare.cascade[[ca]]
+    optimMatBit=apply(distTritAll,c(1,2),min)
+    compare.cascade.optimal[[ca]] = optimMatBit
+}
+
 
 pdf(paste(pathPlots,"histograms_tenmer_3gen_muVar.pdf"))
 par(mfrow=c(2,2))
@@ -256,3 +263,14 @@ legend("right",as.character(mus),col=seq_len(length(mus)),cex=0.8,fill=seq_len(l
 
 #matplot(mus,t(apply(muVarMatrix,c(1,2),mean)),type="o",pch=1:4)
 #legend("right",distNames,col=seq_len(length(distNames)),cex=0.8,fill=seq_len(length(distNames)),title="Generations")
+
+
+
+
+
+#this function calculates the area under the curve of the ecdf of the vector. In this case, the cumulative fraction
+#of trees (as the plot in Memoir 1.0), that have a certain degree of accuracy (RF.dist)
+auc.ecdf<-function(x){
+  emp.cdf = ecdf(x)
+  return(max(cumsum(emp.cdf(min(x):max(x)))))
+}
