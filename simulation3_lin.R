@@ -93,8 +93,9 @@ recIntegrase<-function(a,mu,alpha,type,currentInts=1,totalInts=1){
   fullBarcode = a
   #we want to edit only the portion that corresponds to
   #the currently active integrase
-  a=partitionBarcodes(fullBarcode, totalInts,currentInts)
-
+  aa=partitionBarcodes(fullBarcode, totalInts,currentInts)
+  a=aa[[1]] #the sub.barcode
+  editableIndx = aa[[2]] #the indexes for the sub.barcode
 
   for (c in 1:length(a)){
     #only mutate on unchanged elements

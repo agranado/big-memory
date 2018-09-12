@@ -56,6 +56,44 @@ return(list(results.matrix,tree.list))
 
 
 }
+# # # # # # # # # # # #
+ # # # # # # # # # #
+# # # # # # # # # CASCADE
+
+compareDistCascade <- function(simulationType='trit',nGen=6,mu=0.3,alpha_=2/3,barcodeLength=40,nRepeats=20,methods=c(),
+                        recType="integrase",nIntegrases=2){
+
+
+  results= foreach(i=1:nRepeats) %dopar% simMemoirStrdist(nGen=nGen,mu=mu,alpha=alpha_,barcodeLength=barcodeLength,methods=methods,simulationType=simulationType,nIntegrases = nIntegrases)
+
+ #let's unlist the results from the parallel calculations:
+  results_=list()
+  tree.list = list()
+  for(i in 1:length(results)){
+    results_[[i]] =results[[i]][[1]]
+    tree.list[[i]] = results[[i]][[2]]
+  } #this takes the first element of the results list which is the array with distance calculations
+
+
+
+  #put this inside the parallel loop
+  #just a test now
+  dist.cascade =array()
+  for(i in 1:length(tree.list)){
+    this.tree = tree.list[[i]]
+    barcodeLeaves= this.tree$tip.label
+    dist.cascade[i]=RF.dist(cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen=nGen),this.tree)
+  }
+
+  #old reconstruction
+  results.matrix=do.call(rbind,results_)
+
+return(list(tree.list,results.matrix,dist))
+
+
+}
+
+
 
 #functions to use the proportion of perfect trees as the measure.
 #May 8
@@ -112,7 +150,7 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
 #We need to assign a span of time (in generation units for each integrases to be active)
 #The idea is to divide the total number of generations between the N integrases:
 #So for 7 generation and 4 integrases we want a vector of activity = c(1,1,2,2,3,3,4)
-# cascadeActivation function takes care of this 
+# cascadeActivation function takes care of this
   act_time=cascadeActivation(nGen, nIntegrases)
 
 
