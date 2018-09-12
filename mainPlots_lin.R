@@ -138,11 +138,11 @@ for(ng in 1:length(generations)){
 
 # # # # # # 
  # # # # 
- 
+
 
 
 # Sep 10th
-#
+# convert the big list into a more friendly matrix
 compare.cascade=list()
 for (ca in 1:length(integrases)){
     distBitAll=array(0,dim=c(length(barcodes),length(generations),length(mus)))
@@ -172,6 +172,8 @@ for (ca in 1:length(integrases)){
 
 #take minimun across all edit rates
 #optimal rate
+# rows are barcodes
+# cols are generations
 compare.cascade.optimal = list()
 for(ca in 1:length(integrases)){
 
@@ -179,6 +181,28 @@ for(ca in 1:length(integrases)){
     optimMatBit=apply(distTritAll,c(1,2),min)
     compare.cascade.optimal[[ca]] = optimMatBit
 }
+
+
+#for a given number of generations: how does reconstruction improves with increasing number of barcodes
+
+ng = 2
+# R is for reconstructability
+x11()
+par(mfrow=c(2,3))
+for( ng in 1:length(generations)){
+  R_vs_barcode = matrix(0,length(integrases),dim(compare.cascade.optimal[[1]])[1] )
+  for (ca in 1:length(integrases)){
+
+    optimMatBit = compare.cascade.optimal[[ca]]
+    R_vs_barcode[ca,] = optimMatBit[,ng]
+  }
+    R_vs_barcode=1-R_vs_barcode/a[ng]
+    matplot(barcodes,t(R_vs_barcode),type="l",main =paste("g=",toString(generations[ng])),log="x")
+
+}
+lends <- c("1","2","4")
+text(cbind(30, 50*c(1,3,5)-.4), lends, col= 1:3, cex = 1.5)
+
 
 
 pdf(paste(pathPlots,"histograms_tenmer_3gen_muVar.pdf"))

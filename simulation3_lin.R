@@ -89,12 +89,11 @@ mutationScratchpad <- function(barcode,mu,alpha,type='trit',recType="integrase",
 # if no additional arguments are passed, the function will perform integrase recording 1.0
 recIntegrase<-function(a,mu,alpha,type,currentInts=1,totalInts=1){
 
-  barcodeLength=length(a)
+  #barcodeLength=length(a)
   fullBarcode = a
   #we want to edit only the portion that corresponds to
   #the currently active integrase
-  editableIndx =(barcodeLength / totalInts *(currentInts-1)) : (barcodeLength /totalInts * currentInts);
-  a = fullBarcode[editableIndx]
+  a=partitionBarcodes(fullBarcode, totalInts,currentInts)
 
 
   for (c in 1:length(a)){

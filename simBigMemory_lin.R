@@ -14,7 +14,7 @@ if(os=="mac"){
   git.path = "../lineageSoftware/"
 
 }else if(os=="aws"){ #AMAZON cloud computing server
-  
+
   git.path="../lineageSoftware/"
 }
 
@@ -112,30 +112,8 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
 #We need to assign a span of time (in generation units for each integrases to be active)
 #The idea is to divide the total number of generations between the N integrases:
 #So for 7 generation and 4 integrases we want a vector of activity = c(1,1,2,2,3,3,4)
-  c( nGen %% nIntegrases,ceiling(nGen/nIntegrases),  nGen%/%nIntegrases)
-  act_time =array()
-  a =nGen %% nIntegrases
-  b =ceiling(nGen/nIntegrases)
-  c = nGen%/%nIntegrases
-
-  if(a>0){
-    for (i in 1:a){
-        act_time =c(act_time,rep(i,b))
-    }
-    act_time = act_time[-1]
-    act_time2=array()
-    for(i in (a+1):nIntegrases){
-        act_time2 =c(act_time2, rep(i,c))
-    }
-    act_time2 = act_time2[-1]
-    act_time = c(act_time,act_time2)
-  }else{
-
-    for(i in 1:nIntegrases){
-      act_time = c(act_time,  rep(i,c))
-    }
-    act_time = act_time[-1]
-  }
+# cascadeActivation function takes care of this 
+  act_time=cascadeActivation(nGen, nIntegrases)
 
 
   for (g in 1:nGen){
