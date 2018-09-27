@@ -37,7 +37,11 @@ cascadeActivation<-function(nGen,nIntegrases){
    a = fullBarcode[editableIndx]
    return(list(a,editableIndx))
 }
+library(phytools) #for pasting trees together
 
+#this function works well for nIntegrases=2
+#for more integrases, it will require recursive reconstruction
+#We might not need more than 4 integrases for the paper (or in reality)
 cascadeReconstruction<-function(barcodesLeaves,totalInts,currentInts,nGen){
 
     # 1 Partition barcode into the different integrase-specific elements
