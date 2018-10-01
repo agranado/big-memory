@@ -42,7 +42,7 @@ library(phytools) #for pasting trees together
 #this function works well for nIntegrases=2
 #for more integrases, it will require recursive reconstruction
 #We might not need more than 4 integrases for the paper (or in reality)
-cascadeReconstruction<-function(barcodesLeaves,totalInts,currentInts,nGen){
+cascadeReconstruction<-function(barcodeLeaves,totalInts,currentInts,nGen,mu,alpha){
 
     # 1 Partition barcode into the different integrase-specific elements
       ##  barcodeLeaves= this.tree$tip.label
@@ -84,7 +84,7 @@ cascadeReconstruction<-function(barcodesLeaves,totalInts,currentInts,nGen){
       big.tree = manualTree_1
       # for each unique.sub.barcode, get all the daughters coming from that clone
       for(i in 1:length(unique.sub.barcodes)){
-        daughter.index= grep(unique.sub.barcodes[i],barcodeLeaves) #get all the cells that have same barcode for first integrase (theu belong to the same clone)
+        daughter.index= grep(unique.sub.barcodes[i],sub.barcodes) #get all the cells that have same barcode for first integrase (theu belong to the same clone)
         daughters.barcodes = barcodeLeaves[daughter.index] #get the barcodes
 
         matdist_2 = manualDistML(daughters.barcodes,mu,alpha,sub.nGen) # submatrix for distances

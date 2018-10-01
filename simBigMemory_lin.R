@@ -5,6 +5,7 @@ library(doParallel)
 library(gplots)
 source("simulation3_lin.R")
 source("additionalFunctions.R")
+source("cascadeFunctions.R")
 
 
 os=system("cat ../os.txt",intern = T) #Local Mac repository (laptop)
@@ -27,10 +28,10 @@ registerDoParallel(8)
 
 rand.dist<-c(10,  26,  58, 120, 250, 506)
 nRepeats = 20
-compareDist <- function(simulationType='trit',nGen=4,mu=0.3,alpha_=2/3,barcodeLength=40,nRepeats=20,methods=c('osa','lv','dl','hamming','lcs','qgram','cosine','jaccard','jw','soundex'),
-                        recType="integrase",nIntegrases=4){
+compareDist <- function(simulationType='trit',nGen=5,mu=0.3,alpha_=1/2,barcodeLength=20,nRepeats=20,methods=c('osa','lv','dl','hamming','lcs','qgram','cosine','jaccard','jw','soundex'),
+                        recType="integrase",nIntegrases=2){
 
-
+  
   results= foreach(i=1:nRepeats) %dopar% simMemoirStrdist(nGen=nGen,mu=mu,alpha=alpha_,barcodeLength=barcodeLength,methods=methods,simulationType=simulationType,nIntegrases = nIntegrases)
 
  #let's unlist the results from the parallel calculations:
@@ -281,9 +282,14 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   #
 
   #alternative w/o plotting the actual heatmap, only hclust method
-  hclust.tree=as.phylo(hclust(as.dist(t(matdist_))))
-  hclust.tree$tip.label = treeUPGMA$tip.label
-  allDistances[m+3]= RF.dist(removeSeqLabel(hclust.tree),trueTree)
+#  hclust.tree=as.phylo(hclust(as.dist(t(matdist_))))
+#  hclust.tree$tip.label = treeUPGMA$tip.label
+#  allDistances[m+3]= RF.dist(removeSeqLabel(hclust.tree),trueTree)
+  
+  # CASCADE RECONSTRUCTION::::::::: Sep27
+  r=cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen,mu,alpha)
+  allDistances[m+3] = RF.dist(r,named.tree)
+  
 
   #system(paste("rm ",firstCellFile,sep=""))
   if(sed.return){
