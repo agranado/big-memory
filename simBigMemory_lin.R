@@ -28,10 +28,10 @@ registerDoParallel(8)
 
 rand.dist<-c(10,  26,  58, 120, 250, 506)
 nRepeats = 20
-compareDist <- function(simulationType='trit',nGen=5,mu=0.3,alpha_=1/2,barcodeLength=20,nRepeats=20,methods=c('osa','lv','dl','hamming','lcs','qgram','cosine','jaccard','jw','soundex'),
+compareDist <- function(simulationType='trit',nGen=5,mu=0.3,alpha_=1/2,barcodeLength=20,nRepeats=20,methods=c(),
                         recType="integrase",nIntegrases=2){
 
-  
+
   results= foreach(i=1:nRepeats) %dopar% simMemoirStrdist(nGen=nGen,mu=mu,alpha=alpha_,barcodeLength=barcodeLength,methods=methods,simulationType=simulationType,nIntegrases = nIntegrases)
 
  #let's unlist the results from the parallel calculations:
@@ -286,16 +286,15 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
 #  hclust.tree=as.phylo(hclust(as.dist(t(matdist_))))
 #  hclust.tree$tip.label = treeUPGMA$tip.label
 #  allDistances[m+3]= RF.dist(removeSeqLabel(hclust.tree),trueTree)
-  
-  # CASCADE RECONSTRUCTION::::::::: Sep27
-  r=cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen,mu,alpha)
-  allDistances[m+3] = RF.dist(r,named.tree)
-  
 
-# CASCADE reconstruction
-#this function calls manualDist and therefore needs alpha & mu as arguments
-  r=cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen,mu,alpha)
-  allDistances[m+3] =RF.dist(r,named.tree)
+  # CASCADE RECONSTRUCTION::::::::: Sep27
+  if(totalInts>1){
+    r=cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen,mu,alpha)
+    allDistances[m+3] = RF.dist(r,named.tree)
+  }else{
+    allDistances[m+3] = 0
+  }
+
 
 
   #system(paste("rm ",firstCellFile,sep=""))
