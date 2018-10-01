@@ -288,7 +288,7 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
 #  allDistances[m+3]= RF.dist(removeSeqLabel(hclust.tree),trueTree)
 
   # CASCADE RECONSTRUCTION::::::::: Sep27
-  if(totalInts>1){
+  if(nIntegrases>1){
     r=cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen,mu,alpha)
     allDistances[m+3] = RF.dist(r,named.tree)
   }else{
