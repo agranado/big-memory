@@ -68,12 +68,13 @@ cascadeReconstruction<-function(barcodeLeaves,totalInts,currentInts,nGen,mu,alph
 
       #calcute the index then use substr
       #this function returns both the sub.barcode and the indexes
+      #here we start with the first subtree, using only the first generations, therefore currentInts==1
       editableIndx=partitionBarcodes(strsplit(barcodeLeaves[1],"")[[1]],totalInts,currentInts)[[2]]
     #  editableIndx= editableIndx[-1]
-      # NEXT LINE is WRONG, fix it after correcting the indexes in the next dataset
+      #
       sub.barcodes = substr(barcodeLeaves,range(editableIndx)[1],range(editableIndx)[2])
 
-      #generate a small subtree based on unique profiles
+      #generate a small subtree based on unique profiles for the first generations
       unique.sub.barcodes = unique(sub.barcodes)
 
       sub.nGen = sum(act_time ==currentInts)

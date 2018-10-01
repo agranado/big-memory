@@ -101,12 +101,13 @@ return(list(tree.list,results.matrix,dist))
 eq.zero<-function(r,x){sum(r[,x]==0)}
 
 
+ #nGen=5;mu=0.4;alpha=1/2;barcodeLength=20;methods=c();simulationType='trit';recType="integrase";nIntegrases=2
 
-#nGen=3;mu=0.4;alpha=1/2;barcodeLength=10;methods=c();simulationType='trit';
 #April 8th
 #Test stringdistance measures using the stringdist R library
 #use the same format as before but testing different methods included in the stringdist function
-simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),simulationType='trit',recType="integrase",nIntegrases=2){
+simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
+                          simulationType='trit',recType="integrase",nIntegrases=2){
   #load necessary libraries and functions
   #detection of OS
 
@@ -290,6 +291,12 @@ simMemoirStrdist<-function(nGen=3,mu=0.4,alpha=1/2,barcodeLength=10,methods=c(),
   r=cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen,mu,alpha)
   allDistances[m+3] = RF.dist(r,named.tree)
   
+
+# CASCADE reconstruction
+#this function calls manualDist and therefore needs alpha & mu as arguments
+  r=cascadeReconstruction(barcodeLeaves,totalInts=nIntegrases,currentInts=1,nGen,mu,alpha)
+  allDistances[m+3] =RF.dist(r,named.tree)
+
 
   #system(paste("rm ",firstCellFile,sep=""))
   if(sed.return){
