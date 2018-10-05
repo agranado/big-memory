@@ -78,9 +78,37 @@ cascadeReconstruction<-function(barcodeLeaves,totalInts,currentInts,nGen,mu,alph
       unique.sub.barcodes = unique(sub.barcodes)
 
       sub.nGen = sum(act_time ==currentInts)
-      matdist_ = manualDistML(unique.sub.barcodes,mu,alpha,sub.nGen)
-      colnames(matdist_)<-unique.sub.barcodes
-      manualTree_1 =upgma(as.dist(t(matdist_))) #now the tree has names
+      #for very slow recording it might be that there are not edits during the
+      #first integrase, and so all cells have same sub.barcode --> problem
+      #a single if should do the job
+
+      if(length(unique.sub.barcodes)>1){
+          matdist_ = manualDistML(unique.sub.barcodes,mu,alpha,sub.nGen)
+          colnames(matdist_)<-unique.sub.barcodes
+          manualTree_1 =upgma(as.dist(t(matdist_))) #now the tree has names
+        }else{ #DOES NOT WORK SO FAR
+          firstCell=firstCell<-Node$new("1"); firstCell$barcode <-paste(rep("u",barcodeLength),collapse="");
+        #  manualTree_1 = as.phylo(firstCell) #here we need to return a root for a tree
+          #we need to add the sub tree where the parent leaves correspond, if all the sub.barcodes are the sample
+          # then we should just put them randombly to any node, I thought about making only one subnode but that doesn't works
+          #we can make a root node wiht N childs, where each child correspond to a parent leave wiht no identity
+
+          #PROBLEM: as.phylo.Node does not want to convert the root only from Node->phylo
+
+          #FIX 1: 5-Oct-2018
+          #Since all the subtrees can't be related to each other (they all have same edits in 1st integrase)
+          #we will just put them all together as if coming from the first node directly (which is true)
+          #however, at this point we don't know how many subtrees there are, so we will just aproxximate a number
+          #  for(jj in 1:sub.nGen^2) { firstCell$AddChild(jj+1) } #FIX THIS
+          #  as.phylo.Node(firstCell)
+
+          #FIX 2: make dummy node as an extension of the root (WORKS)
+          dummy.root = firstCell$AddChild(unique.sub.barcodes[1]) #add dummy node such that conversion to phylo works..
+          dummy.root$barcode= unique.sub.barcodes[1]
+          manualTree_1 = as.phylo.Node(firstCell)
+          #fix the length of the edge
+          manualTree_1$edge.length  =0.01 #this is the order of the reconstructed edges
+        }
       #this works
       big.tree = manualTree_1
       # for each unique.sub.barcode, get all the daughters coming from that clone
