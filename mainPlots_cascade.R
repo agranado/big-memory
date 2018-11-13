@@ -80,3 +80,46 @@ for(ng in 1:length(generations)){
 #optimal reconstructability
 optimTritAll = apply(distTritAll,c(1,2),mean)
 optimBitAll = apply(distBitAll,c(1,2),mean)
+
+row.names(optimBitAll)<-as.character(barcodes)
+colnames(optimBitAll)<-as.character(generations)
+
+row.names(optimTritAll)<-as.character(barcodes)
+colnames(optimTritAll)<-as.character(generations)
+
+
+ #####
+
+
+ my_palette <-  colorRampPalette(brewer.pal(11,"Spectral"))(n = 299)
+
+ # (optional) defines the color breaks manually for a "skewed" color transition
+ col_breaks = c(seq(0.4,0.6,length=100),  # for red
+                seq(0.61,0.8,length=100),           # for yellow
+                seq(0.81,1,length=100))
+##### WORKS: two heatmaps side by side
+library(gridGraphics)
+library(grid)
+heatmap.2(optimBitAll,trace='none',dendrogram='none',col=my_palette,breaks = col_breaks,Rowv=F,Colv=F,key=F)
+library(gridGraphics)
+grab_grob <- function(){
+  grid.echo()
+  grid.grab()
+}
+
+g <- grab_grob()
+grid.newpage()
+
+heatmap.2(optimTritAll,trace='none',dendrogram='none',col=my_palette,breaks = col_breaks,Rowv=F,Colv=F,key=F)
+g2 <- grab_grob()
+#grid.newpage()
+# library(gridExtra)
+# grid.arrange(g,g, ncol=2, clip=TRUE)
+
+lay <- grid.layout(nrow = 1, ncol=2)
+pushViewport(viewport(layout = lay))
+grid.draw(editGrob(g, vp=viewport(layout.pos.row = 1,
+                                  layout.pos.col = 1, clip=TRUE)))
+grid.draw(editGrob(g2, vp=viewport(layout.pos.row = 1,
+                                  layout.pos.col = 2, clip=TRUE)))
+upViewport(1)
