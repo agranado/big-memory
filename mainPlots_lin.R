@@ -1,33 +1,46 @@
 
-#May 9th
-#main plots that might be used in the paper
+#Oct 9th,2018
+#First round of cascade simulations is Done!
+#Here we will generate basic plots for comparing 1 vs 2 integrases as independent channels using a new reconstruction method
+#the goal:show as a proof of principle that by applying smarter memory usage we can optimize lineage recording
+
+
 #this script should load the object muVariation or it should be executed afeter running bitVStrit.R
 os=system("cat ../os.txt",intern = T) #Local Mac repository (laptop)
 if( os=="linux"){
-  data.path = "/home/alejandrog/MEGA/Caltech/lineage/simulation_data/"
+  data.path = "/home/alejandrog/MEGA/Caltech/lineage/simulation_data/" #Location of simulation data from AWS
 }else if(os=="mac"){
 
   data.path = "./"
 }
 #parameters from AWS: large object cascadevar 10-Sep-2018
 #SET PARAMETERS
-barcodes = c(20,40,60,80,100,200)
-integrases = c(1,2,4)
-mus = c(0.5,0.4,0.3,0.2,0.1)
-generations=c(4,6,7,8,9,10)#,11,12)
+barcodes = c(20,30,40,50,60,80,100,200)
+integrases = c(1,2)
+mus = c(0.5,0.4,0.3,0.2,0.1,0.05)
+generations=c(4,5,6,7,10)#,11,12)
 nRepeats=72
 types=c('trit')
 #large file with all the simulations: distances and trees.
 # 1 muVariation object per integrase number, for cascade recording
-file.name.cascade="intVar_int_4_.rda"
-load(paste(data.path,file.name.cascade,sep=""))
+file.name.cascade1="intVar_int_1_.rda"
+file.name.cascade2="intVar_int_2_.rda"
+load(paste(data.path,file.name.cascade1,sep=""))
+cascadevar1=cascadevar; rm(cascadevar)
+load(paste(data.path,file.name.cascade2,sep=""))
+cascadevar2=cascadevar ;rm(cascadevar)
+
+cascadevar=list()
+cascadevar[[1]] = cascadevar1[[1]]
+cascadevar[[2]] = cascadevar2[[1]]
+rm("cascadevar1","cascadevar2")
 #name of the object is cascadevar
 # struct[[int_number]][[mu]][[typeSim]][[bc]][[ng]]
 # DIMS : cascadevar[[1]][[5]][[1]][[6]][[6]]
 
 # RANDOM distance: for normalizaiton
 
-ran.generations = c(3,4,5,6,7,8,9,10)#,11,12)
+ran.generations = c(4,5,6,7,10)#,11,12)
 a=list()
   #RUN
   #results= foreach(i=1:length(ran.generations)) %dopar% simMemoirRandomGuess(ran.generations[i],mu,alpha,barcodes[1],nRepeats)
@@ -56,17 +69,19 @@ par(mfrow=c(length(integrases),length(generations)))
 
 
 cascade.matrices=list()
+#method number 3 only applies for more than 1 integrase
+method.idx=c(2,3)
 for (ni in 1:length(integrases)){
   distTrit=array(0,dim=c(length(barcodes),length(generations)))
 
   muVariation = cascadevar[[ni]]
-  mIdx=4 #only one edit rate
+  mIdx=3 #only one edit rate
   simType=muVariation[[mIdx]]
     for(ng in 1:length(generations)){
 
       for(bc in 1:length(barcodes)){
         #distBit[bc,ng]=apply(simType[['binary']][[bc]][[ng]],2,mean)[11]
-        distTrit[bc,ng]=apply(simType[['trit']][[bc]][[ng]],2,mean)[1] # 12 -> RF.dist using manualDist + UPGMA
+        distTrit[bc,ng]=apply(simType[['trit']][[bc]][[ng]],2,mean)[method.idx[ni]] # 12 -> RF.dist using manualDist + UPGMA
 
       }
     }
@@ -77,7 +92,8 @@ for (ni in 1:length(integrases)){
 dev.off()
 
 #normalize distances with the random guess and plot heatmaps
-
+distBit = cascade.matrices[[1]]
+distTrit = cascade.matrices[[2]]
 distBitNorm=array(0,dim=dim(distBit));for(d in 1:dim(distBit)[2]){distBitNorm[,d]=(a[d]-distBit[,d])/a[d]}
 
 distTritNorm=array(0,dim=dim(distTrit));for(d in 1:dim(distTrit)[2]){distTritNorm[,d]=(a[d]-distTrit[,d])/a[d]}
@@ -150,7 +166,7 @@ for (ca in 1:length(integrases)){
     par(mfrow=c(2,3))
     upgma.idx=1
     manualDist.idx=3
-    BCn = 5
+    BCn = 3
     muVariation = cascadevar[[ca]]
     for(ng in 1:length(generations)){
       for (mIdx in 1:length(mus)){
@@ -160,6 +176,9 @@ for (ca in 1:length(integrases)){
           distTritAll[bc,ng,mIdx]=apply(simType[['trit']][[bc]][[ng]],2,mean)[manualDist.idx]
         }
       }
+
+
+
       plot(mus,1-distTritAll[BCn,ng,]/a[ng],ylim=c(0,1),
            type="o",col="blue",ylab="norm dist",xlab="edit rate p/site p/gen",
            main=paste("g=",toString(generations[ng]),sep=""),
@@ -305,4 +324,40 @@ legend("right",as.character(mus),col=seq_len(length(mus)),cex=0.8,fill=seq_len(l
 auc.ecdf<-function(x){
   emp.cdf = ecdf(x)
   return(max(cumsum(emp.cdf(min(x):max(x)))))
+}
+
+
+
+
+
+
+
+
+#paper plot
+# HHMI plots / retreat plots
+#how many generations you can do with N barcodes
+par(mfrow=c(2,2))
+optimMatNorm= array(0, dim=dim(optimMatTrit) ); for(i in 1:dim(optimMatTrit)[2]){ optimMatNorm[,i] = (a[i]-optimMatTrit[,i])/a[i] }
+optimMatBitNorm= array(0, dim=dim(optimMatTrit) ); for(i in 1:dim(optimMatBit)[2]){ optimMatBitNorm[,i] = (a[i]-optimMatBit[,i])/a[i] }
+t=c(0.80,0.85,0.90,0.95)
+#ylims=c(100,100,100,200
+ylims=c(60,60,60,100)
+legend.y.pos = c(90,90,90,180)
+for(tt in 1:length(t)){
+
+
+    threshold=t[tt]
+    #bc.per.gen.bit = array();for(i in 1:dim(optimMatBitNorm)[2]){ bc.per.gen.bit[i] = min( which(optimMatBitNorm[,i]>threshold) ) }
+    bc.per.gen.bit = array();for(i in 1:dim(optimMatNorm)[2]){ bc.per.gen.bit[i] = min( which(optimMatNorm[,i]>t[3]) ) }
+    bc.per.gen.bit2 = array();for(i in 1:dim(optimMatNorm)[2]){ bc.per.gen.bit2[i] = min( which(optimMatNorm[,i]>t[1]) ) }
+    bc.per.gen.trit = array();for(i in 1:dim(optimMatNorm)[2]){ bc.per.gen.trit[i] = min( which(optimMatNorm[,i]>threshold) ) }
+
+    plot(generations,barcodes[bc.per.gen.trit],type="l",lwd=2.5,
+         xlim=c(2,10),ylim=c(2,ylims[tt]),cex.lab=1.5,cex.axis=1.2,ylab="Array length",xlab="Generations",
+         main=paste(toString(t[tt])," % reconstructability",sep=""))
+    grid (10,10, lty = 6, col = "cornsilk2")
+    lines(generations,barcodes[bc.per.gen.bit],type="l",col="black",lwd=2)
+    lines(generations,barcodes[bc.per.gen.trit],type="l",col="blue",lwd=2)
+    lines(generations,barcodes[bc.per.gen.bit2],type="l",col="gray",lwd=2)
+    #legend(3,legend.y.pos[tt],c("Trit","Bit"),fill=c("blue","black"))
 }

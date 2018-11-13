@@ -28,6 +28,7 @@ registerDoParallel(8)
 
 rand.dist<-c(10,  26,  58, 120, 250, 506)
 nRepeats = 20
+# tHIS IS THE FUNCTION CURRENTLY CALLED BY bitVStrit.R
 compareDist <- function(simulationType='trit',nGen=5,mu=0.3,alpha_=1/2,barcodeLength=20,nRepeats=20,methods=c(),
                         recType="integrase",nIntegrases=2){
 
@@ -61,6 +62,7 @@ return(list(results.matrix,tree.list))
  # # # # # # # # # #
 # # # # # # # # # CASCADE
 
+#this does not work
 compareDistCascade <- function(simulationType='trit',nGen=6,mu=0.3,alpha_=2/3,barcodeLength=40,nRepeats=20,methods=c(),
                         recType="integrase",nIntegrases=2){
 
@@ -90,7 +92,6 @@ compareDistCascade <- function(simulationType='trit',nGen=6,mu=0.3,alpha_=2/3,ba
   results.matrix=do.call(rbind,results_)
 
 return(list(tree.list,results.matrix,dist))
-
 
 }
 
