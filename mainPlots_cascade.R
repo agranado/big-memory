@@ -10,7 +10,9 @@
 #this script should load the object muVariation or it should be executed afeter running bitVStrit.R
 os=system("cat ../os.txt",intern = T) #Local Mac repository (laptop)
 if( os=="linux"){
-  data.path = "/home/alejandrog/MEGA/Caltech/lineage/simulation_data/" #Location of simulation data from AWS
+
+  #data.path = "/home/alejandrog/MEGA/Caltech/lineage/simulation_data/" #Location of simulation data from AWS
+  data.path = "./"
 }else if(os=="mac"){
 
   data.path = "./"
@@ -42,9 +44,9 @@ rm("cascadevar1","cascadevar2") #DATA LOADED CORRECTLY AGC., Oct 11th
 # # # # # # # # # # #
 
 # create the data structure
-dist.idx= c(1,3)
+dist.idx= c(2,3) #for integrase==1 there is only one distance, int==2, only distance is id=3
 compare.cascade= list()
-BCn=2
+BCn=7
 #for each number of integrases get the matrix:
 for( ca in 1:length(integrases)){
 
@@ -77,9 +79,20 @@ for(ng in 1:length(generations)){
   lines(mus,distBitAll[BCn,ng,],type="o")
 }
 
+# set names for axis:
+dimnames(distBitAll)[[1]]<-barcodes
+dimnames(distBitAll)[[2]]<-generations
+dimnames(distBitAll)[[3]]<-mus
+
+dimnames(distTritAll)[[1]]<-barcodes
+dimnames(distTritAll)[[2]]<-generations
+dimnames(distTritAll)[[3]]<-mus
+
+
+
 #optimal reconstructability
-optimTritAll = apply(distTritAll,c(1,2),mean)
-optimBitAll = apply(distBitAll,c(1,2),mean)
+optimTritAll = apply(distTritAll,c(1,2),max)
+optimBitAll = apply(distBitAll,c(1,2),max)
 
 row.names(optimBitAll)<-as.character(barcodes)
 colnames(optimBitAll)<-as.character(generations)

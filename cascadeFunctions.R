@@ -85,7 +85,10 @@ cascadeReconstruction<-function(barcodeLeaves,totalInts,currentInts,nGen,mu,alph
       if(length(unique.sub.barcodes)>1){
           matdist_ = manualDistML(unique.sub.barcodes,mu,alpha,sub.nGen)
           colnames(matdist_)<-unique.sub.barcodes
-          manualTree_1 =upgma(as.dist(t(matdist_))) #now the tree has names
+      #    manualTree_1 =upgma(as.dist(t(matdist_))) #now the tree has names
+          manualTree_1= as.phylo(hclust(as.dist(t(matdist_))))
+
+
         }else{ #DOES NOT WORK SO FAR
           firstCell=firstCell<-Node$new("1"); firstCell$barcode <-paste(rep("u",barcodeLength),collapse="");
         #  manualTree_1 = as.phylo(firstCell) #here we need to return a root for a tree
@@ -118,7 +121,8 @@ cascadeReconstruction<-function(barcodeLeaves,totalInts,currentInts,nGen,mu,alph
 
         matdist_2 = manualDistML(daughters.barcodes,mu,alpha,sub.nGen) # submatrix for distances
         colnames(matdist_2)<-daughters.barcodes # name the matrix with the actual barcodes, will be used later for distance between the real and reconstructed trees
-        manualTree_2 =upgma(as.dist(t(matdist_2))) #now the tree has names
+        #manualTree_2 =upgma(as.dist(t(matdist_2))) #now the tree has names
+        manualTree_2 =as.phylo(hclust(as.dist(t(matdist_2))))
 
         # AND REPEAT (recursively)
         # 3 Join subtrees into a big tree
@@ -137,3 +141,94 @@ cascadeReconstruction<-function(barcodeLeaves,totalInts,currentInts,nGen,mu,alph
         return(big.tree)
 
   }
+
+
+
+
+
+  heatmap.compare<-function(mat1,mat2){
+
+
+
+     my_palette <-  colorRampPalette(brewer.pal(11,"Spectral"))(n = 299)
+
+     # (optional) defines the color breaks manually for a "skewed" color transition
+     col_breaks = c(seq(0,0.33,length=100),  # for red
+                    seq(0.34,0.66,length=100),           # for yellow
+                    seq(0.67,1,length=100))
+    ##### WORKS: two heatmaps side by side
+    library(gridGraphics)
+    library(grid)
+    heatmap.2(mat1,trace='none',dendrogram='none',col=my_palette,breaks = col_breaks,Rowv=F,Colv=F,key=T)
+    library(gridGraphics)
+    grab_grob <- function(){
+      grid.echo()
+      grid.grab()
+    }
+
+    g <- grab_grob()
+    grid.newpage()
+
+    heatmap.2(mat2,trace='none',dendrogram='none',col=my_palette,breaks = col_breaks,Rowv=F,Colv=F,key=F)
+    g2 <- grab_grob()
+    #grid.newpage()
+    # library(gridExtra)
+    # grid.arrange(g,g, ncol=2, clip=TRUE)
+
+    lay <- grid.layout(nrow = 1, ncol=2)
+    pushViewport(viewport(layout = lay))
+    grid.draw(editGrob(g, vp=viewport(layout.pos.row = 1,
+                                      layout.pos.col = 1, clip=TRUE)))
+    grid.draw(editGrob(g2, vp=viewport(layout.pos.row = 1,
+                                      layout.pos.col = 2, clip=TRUE)))
+    upViewport(1)
+
+  }
+
+  single.integrase.reconstruction<-function(barcodeLeaves,nGen=4,mu=0.4,alpha=1/2){
+
+          matdist_ = manualDistML(barcodeLeaves,mu,alpha,nGen)
+          colnames(matdist_)<-barcodeLeaves
+          hclust.tree=as.phylo(hclust(as.dist(t(matdist_))))
+          return(hclust.tree)
+  }
+
+  library(data.tree)
+  library(phangorn)
+  reconstruct.list<-function(cascadevar.tree,integrases,barcodes,mus,generations,alpha=1/2){
+
+
+      matrices=list()
+
+      for(ca in 1:length(integrases)){
+        distBitAll = array(0,dim=c(length(barcodes),length(generations),length(mus)))
+        for(mIdx in 1:length(mus)){
+          print( paste("int ",toString(integrases[ca])," mu=",toString(mus[mIdx]),"\\n" ))
+          for(bc in 1:length(barcodes)){
+            for(ng in 1:length(generations)){
+
+                tree.set = cascadevar.tree[[ca]][[mIdx]][[1]][[bc]][[ng]]
+
+              list.dist=matrix(0,length(tree.set),2);
+              for(i in 1:length(tree.set)){
+                barcodeLeaves=tree.set[[i]]$tip.label;
+                if(ca==1){
+
+                  r = single.integrase.reconstruction(barcodeLeaves,nGen=generations[ng],mu = mus[mIdx],alpha=1/2)
+                }else{
+                  r=cascadeReconstruction(barcodeLeaves,totalInts=2,currentInts=1,nGen=generations[ng],mu=mus[mIdx],alpha =1/2);
+                }
+
+
+                list.dist[i,1] = RF.dist(r,tree.set[[i]]);
+                list.dist[i,2]=RF.dist(r,tree.set[[i]],normalize =T)
+              }
+
+              distBitAll[bc,ng,mIdx] = mean(list.dist[,2])
+            }
+          }
+        }
+        matrices[[ca]] = distBitAll
+      }
+      return(matrices)
+}
